@@ -1,72 +1,77 @@
 #include <cstdlib>
 #include <iostream>
-#include <goocanvas.h>
+#include <gtk/gtk.h>
 #include "board.h"
 
 using namespace std;
 
-const gint NUMBER_OF_ROWS = 3;
-const gint NUMBER_OF_COLUMNS = 3;
-const gint NO_PLAYER = 0;
+const guint NO_PLAYER = 0;
 
-Board::Board (gint numOfBoxes) {
+Board::Board (guint numOfBoxes) {
 
 	gNumOfBoxes = numOfBoxes;
 
-	gBoxClicked = new gboolean[numOfBoxes];
+	gBoxClicked = new gboolean[numOfBoxes+1];
 
-	gTicTacToeBoard = new gint*[NUMBER_OF_ROWS];
-	for(int i = 0; i < NUMBER_OF_ROWS; ++i) {
-    	gTicTacToeBoard[i] = new int[NUMBER_OF_COLUMNS];
+	gTicTacToeBoard = new guint*[NUMBER_OF_ROWS];
+	for(guint i = 0; i < NUMBER_OF_ROWS; i++) {
+    	gTicTacToeBoard[i] = new guint[NUMBER_OF_COLUMNS];
 	}
 
 	//initialize all false
-	for (int i = 0; i < numOfBoxes; i++) {
+	for (guint i = 0; i < (numOfBoxes+1); i++) {
 		gBoxClicked[i] = FALSE;
 	}
 
-	for (int i = 0; i < NUMBER_OF_ROWS; i++) {
-		for (int j = 0; j < NUMBER_OF_COLUMNS; j++) {
-			gTicTacToeBoard[i][j] = FALSE;
+	for (guint i = 0; i < NUMBER_OF_ROWS; i++) {
+		for (guint j = 0; j < NUMBER_OF_COLUMNS; j++) {
+			gTicTacToeBoard[i][j] = 0;
 		}
 	}
 }
 
 Board::~Board (void) {
-   
+  
     delete [] gBoxClicked;
 
-	for(int i = 0; i < NUMBER_OF_ROWS; ++i) {
+	for(guint i = 0; i < NUMBER_OF_ROWS; i++) {
     	delete [] gTicTacToeBoard[i];
 	}
 
 	delete [] gTicTacToeBoard;
+
 }
 
-void Board::set_box_clicked (gint boxNumber) {
+void Board::set_box_clicked (guint boxNumber) {
 	gBoxClicked[boxNumber] = TRUE;
 }
 
-gboolean Board::get_box_clicked (gint boxNumber) {
+gboolean Board::get_box_clicked (guint boxNumber) {
 	return gBoxClicked[boxNumber];
 }
 
-void Board::update_board (gint boxNumber, gint player) {
+void Board::update_board (guint boxNumber, guint player) {
 	
-	gint rowIndex;
-	gint columnIndex;
+	guint rowIndex;
+	guint columnIndex;
 
 	rowIndex = (boxNumber-1) / NUMBER_OF_ROWS;
+	if (rowIndex > 2) {
+		rowIndex = 2;
+	}
 	columnIndex = (boxNumber-1) % NUMBER_OF_COLUMNS;
+	if (columnIndex > 2) {
+		columnIndex = 2;
+	}
 
-	//turn 0 into 1 and 1 into 2
+	//turn 0 guinto 1 and 1 guinto 2
 	gTicTacToeBoard[rowIndex][columnIndex] = player+1;
 }
 
 void Board::display_board (void) {
 
-	for (int i = 0; i < NUMBER_OF_ROWS; i++) {
-		for (int j = 0; j < NUMBER_OF_COLUMNS; j++) {
+	for (guint i = 0; i < NUMBER_OF_ROWS; i++) {
+		for (guint j = 0; j < NUMBER_OF_COLUMNS; j++) {
 			cout << gTicTacToeBoard[i][j] << " ";
 		}
 		cout << endl;
@@ -77,8 +82,8 @@ gboolean Board::is_board_empty (void) {
 
 	gboolean isBoardEmpty = TRUE;
 
-	for (int i = 0; i < NUMBER_OF_ROWS; i++) {
-		for (int j = 0; j < NUMBER_OF_COLUMNS; j++) {
+	for (guint i = 0; i < NUMBER_OF_ROWS; i++) {
+		for (guint j = 0; j < NUMBER_OF_COLUMNS; j++) {
 			if (gTicTacToeBoard[i][j] == FALSE) {
 				isBoardEmpty = TRUE;
 			} else {
@@ -98,8 +103,8 @@ gboolean Board::is_board_full (void) {
 
 	gboolean isBoardFull = TRUE;
 
-	for (int i = 0; i < NUMBER_OF_ROWS; i++) {
-		for (int j = 0; j < NUMBER_OF_COLUMNS; j++) {
+	for (guint i = 0; i < NUMBER_OF_ROWS; i++) {
+		for (guint j = 0; j < NUMBER_OF_COLUMNS; j++) {
 			if (gTicTacToeBoard[i][j] == FALSE) {
 				isBoardFull = FALSE;
 				break;
@@ -115,22 +120,28 @@ gboolean Board::is_board_full (void) {
 	return isBoardFull;
 }
 
-gint** Board::get_current_board (void) {
+guint** Board::get_current_board (void) {
 
-	return gTicTacToeBoard;
+	if (gTicTacToeBoard != NULL) {
+		return gTicTacToeBoard;
+	} else {
+		exit (0);
+	}
+
 }
 
 void Board::reset_board (void) {
 
 	//initialize all false
-	for (int i = 0; i < gNumOfBoxes; i++) {
+	for (guint i = 0; i < (gNumOfBoxes+1); i++) {
 		gBoxClicked[i] = FALSE;
 	}
 
-	for (int i = 0; i < NUMBER_OF_ROWS; i++) {
-		for (int j = 0; j < NUMBER_OF_COLUMNS; j++) {
-			gTicTacToeBoard[i][j] = NO_PLAYER;
+	for (guint i = 0; i < NUMBER_OF_ROWS; i++) {
+		for (guint j = 0; j < NUMBER_OF_COLUMNS; j++) {
+			gTicTacToeBoard[i][j] = 0;
 		}
 	}
-}
 
+
+}
