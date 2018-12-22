@@ -1,58 +1,70 @@
+#include <cstdlib>
+#include <cstring>
 #include <iostream>
-#include <goocanvas.h>
+#include <gtk/gtk.h>
 #include "game.h"
 
 using namespace std;
 
-const gint NUMBER_OF_ROWS = 3;
-const gint NUMBER_OF_COLUMNS = 3;
-const gint MIN_MOVES_FOR_WIN = 5;
-const gint ROW_1 = 0;
-const gint ROW_2 = 1;
-const gint ROW_3 = 2;
-const gint COL_1 = 0;
-const gint COL_2 = 1;
-const gint COL_3 = 2;
-const gint NO_WIN = 0;
-const gint PLAYER_1_NUMBER = 1;
-const gint PLAYER_2_NUMBER = 2;
-const gint ZERO_SUM = 0;
+const guint NUMBER_OF_ROWS = 3;
+const guint NUMBER_OF_COLUMNS = 3;
+const guint MIN_MOVES_FOR_WIN = 5;
+const guint ROW_1 = 0;
+const guint ROW_2 = 1;
+const guint ROW_3 = 2;
+const guint COL_1 = 0;
+const guint COL_2 = 1;
+const guint COL_3 = 2;
+const guint NO_WIN = 0;
+const guint PLAYER_1_NUMBER = 1;
+const guint PLAYER_2_NUMBER = 2;
+const guint ZERO_SUM = 0;
 
 Game::Game (void) {
 
-	gCurrentTicTacToeBoard = new gint*[NUMBER_OF_ROWS];
-	for(int i = 0; i < NUMBER_OF_ROWS; ++i) {
-    	gCurrentTicTacToeBoard[i] = new int[NUMBER_OF_COLUMNS];
+	gCurrentTicTacToeBoard = new guint*[NUMBER_OF_ROWS];
+	for(guint i = 0; i < NUMBER_OF_ROWS; i++) {
+    	gCurrentTicTacToeBoard[i] = new guint[NUMBER_OF_COLUMNS];
+	}
+	gNumberOfMoves = 0;
+
+	for (guint i = 0; i < NUMBER_OF_ROWS; i++) {
+    	memset(&gCurrentTicTacToeBoard[i], 0, sizeof(gCurrentTicTacToeBoard[0]));
 	}
 }
 
 Game::~Game (void) {
 
-	for(int i = 0; i < NUMBER_OF_ROWS; ++i) {
+	for(guint i = 0; i < NUMBER_OF_ROWS; i++) {
     	delete [] gCurrentTicTacToeBoard[i];
 	}
 
 	delete [] gCurrentTicTacToeBoard;
 }
 
-void Game::set_current_board (gint **currentTicTacToeBoard) {
+void Game::set_current_board (guint **currentTicTacToeBoard) {
 
-	for (int i = 0; i < NUMBER_OF_ROWS; i++) {
-		for (int j = 0; j < NUMBER_OF_COLUMNS; j++) {
-			gCurrentTicTacToeBoard[i][j] = currentTicTacToeBoard[i][j];
-		}
+	for (guint i = 0; i < NUMBER_OF_ROWS; i++) {
+    	memcpy(&gCurrentTicTacToeBoard[i], 
+    		&currentTicTacToeBoard[i], sizeof(currentTicTacToeBoard[0]));
+	}
+}
+
+void Game::reset_current_board (void) {
+
+	for (guint i = 0; i < NUMBER_OF_ROWS; i++) {
+    	memset(&gCurrentTicTacToeBoard[i], 0, sizeof(gCurrentTicTacToeBoard[0]));
 	}
 }
 
 void Game::display_board (void) {
 
-	for (int i = 0; i < NUMBER_OF_ROWS; i++) {
-		for (int j = 0; j < NUMBER_OF_COLUMNS; j++) {
+	for (guint i = 0; i < NUMBER_OF_ROWS; i++) {
+		for (guint j = 0; j < NUMBER_OF_COLUMNS; j++) {
 			cout << gCurrentTicTacToeBoard[i][j] << " ";
 		}
 		cout << endl;
 	}
-	cout << "-----" << endl;
 }
 
 void Game::set_game_status (gboolean gameStatus) {
@@ -70,16 +82,21 @@ void Game::reset_number_of_moves(void) {
 	gNumberOfMoves = 0;
 }
 
+guint Game::get_number_of_moves(void) {
+	
+	return gNumberOfMoves;
+}
+
 void Game::increment_number_of_moves(void) {
 	
 	gNumberOfMoves++;
 }
 
-gint Game::check_board_for_win (void) {
+guint Game::check_board_for_win (void) {
 
 	if (gNumberOfMoves >= MIN_MOVES_FOR_WIN) {
 
-		gint 	r1_c1, r1_c2, r1_c3, 
+		guint 	r1_c1, r1_c2, r1_c3, 
 				r2_c1, r2_c2, r2_c3, 
 				r3_c1, r3_c2, r3_c3;
 
