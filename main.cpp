@@ -5,6 +5,7 @@
 #include "player.h"
 #include "game.h"
 
+
 const guint MSG_0 = 0; //Being game...Player 1's turn
 const guint MSG_1 = 1; //Player 1's turn
 const guint MSG_2 = 2; //Player 2's turn
@@ -12,11 +13,18 @@ const guint MSG_3 = 3; //Game over...Draw!
 const guint MSG_4 = 4; //Game over...Player 1 wins!
 const guint MSG_5 = 5; //Game over...Player 1 wins!
 
+
+GtkWidget *gWindow;
 GtkWidget *gDialog;
+GtkWidget *gDrawingArea;
 Board gBoard (NUMBER_OF_BOXES);
 Player gPlayer (NUMBER_OF_PLAYERS, PLAYER_1);
 Game gGame;
 
+gboolean gMenuNewGameFlag;
+
+
+static gboolean close_window_cb (GtkWidget *, GdkEvent *, gpointer);
 static gboolean configure_event_cb (GtkWidget *, GdkEventConfigure *, gpointer);
 static gboolean draw_cb (GtkWidget *, cairo_t *, gpointer);
 static gboolean button_press_event_cb (GtkWidget *, GdkEventButton *, gpointer);
@@ -24,7 +32,6 @@ static void clear_surface (void);
 static void draw_grid (GtkWidget *);
 static void draw_info_bar (GtkWidget *, guint);
 static void draw_noughts_or_crosses (GtkWidget *, guint, gint);
-static void close_window (void);
 static void advance_game(GtkWidget *, guint);
 static void init_game (GtkWidget *);
 static void start_new_game (GtkWidget *);
@@ -33,6 +40,21 @@ static void start_new_game (GtkWidget *);
 /* Surface to store current scribbles */
 static cairo_surface_t *surface = NULL;
 
+
+
+static gboolean 
+close_window_cb (
+	GtkWidget *widget, GdkEvent *event, gpointer data) {
+
+	if (surface) {
+		cairo_surface_destroy (surface);
+	}
+
+	exit (0);
+
+	/* We've handled the configure event, no need for further processing. */
+	return TRUE;
+}
 
 /* Create a new surface of the appropriate size to store our scribbles */
 static gboolean 
@@ -115,53 +137,53 @@ button_press_event_cb (
 			//y out of range
 			return FALSE;
 		}
+
+		switch (rowNumber) {
+			case ROW_1:
+				switch (colNumber) {
+					case COLUMN_1:
+						boxSelected = BOX_1;
+						break;
+					case COLUMN_2:
+						boxSelected = BOX_2;
+						break;
+					case COLUMN_3:
+						boxSelected = BOX_3;
+						break;
+					}
+					break;
+		
+			case ROW_2:
+				switch (colNumber) {
+					case COLUMN_1:
+						boxSelected = BOX_4;
+						break;
+					case COLUMN_2:
+						boxSelected = BOX_5;
+						break;
+					case COLUMN_3:
+						boxSelected = BOX_6;
+						break;
+					}
+					break;
+
+			case ROW_3:
+				switch (colNumber) {
+					case COLUMN_1:
+						boxSelected = BOX_7;
+						break;
+					case COLUMN_2:
+						boxSelected = BOX_8;
+						break;
+					case COLUMN_3:
+						boxSelected = BOX_9;
+						break;
+					}
+					break;
+		}
+
+		advance_game(widget, boxSelected);
 	}
-
-	switch (rowNumber) {
-		case ROW_1:
-			switch (colNumber) {
-				case COLUMN_1:
-					boxSelected = BOX_1;
-					break;
-				case COLUMN_2:
-					boxSelected = BOX_2;
-					break;
-				case COLUMN_3:
-					boxSelected = BOX_3;
-					break;
-				}
-				break;
-	
-		case ROW_2:
-			switch (colNumber) {
-				case COLUMN_1:
-					boxSelected = BOX_4;
-					break;
-				case COLUMN_2:
-					boxSelected = BOX_5;
-					break;
-				case COLUMN_3:
-					boxSelected = BOX_6;
-					break;
-				}
-				break;
-
-		case ROW_3:
-			switch (colNumber) {
-				case COLUMN_1:
-					boxSelected = BOX_7;
-					break;
-				case COLUMN_2:
-					boxSelected = BOX_8;
-					break;
-				case COLUMN_3:
-					boxSelected = BOX_9;
-					break;
-				}
-				break;
-	}
-
-	advance_game(widget, boxSelected);
 
 	/* We've handled it, stop processing */
 	return TRUE;
@@ -424,14 +446,6 @@ draw_noughts_or_crosses(GtkWidget *widget, guint boxSelected, gint currentPlayer
 	gtk_widget_queue_draw_area (widget, 5, 5, 190, 190);
 }
 
-static void
-close_window (void) {
-
-	if (surface) {
-		cairo_surface_destroy (surface);
-	}
-}
-
 static void init_game (GtkWidget *drawing_area) {
 
 	//GUI
@@ -441,6 +455,7 @@ static void init_game (GtkWidget *drawing_area) {
 	//Logic
 	gGame.set_game_status (GAME_RUNNING);
 	gGame.reset_number_of_moves();
+	gMenuNewGameFlag = FALSE;
 }
 
 static void start_new_game (GtkWidget *widget) {
@@ -543,42 +558,112 @@ static void advance_game(GtkWidget *widget, guint boxSelected) {
 		}
 	}
 
-
 	if (gGame.get_game_status() == GAME_OVER) {
+
+		guint state = TRUE;
+
+		while (state) {
 		int result = gtk_dialog_run (GTK_DIALOG (gDialog));
 		switch (result) {
-    		case GTK_RESPONSE_NO:
-	       		/* Clear up memory */
-				//delete_dynamic_memory();
-				exit (0);
-	       		break;
-			case GTK_RESPONSE_YES:	
+
+			case GTK_RESPONSE_DELETE_EVENT:
+
+				//signal was given by File->New Game
+				if (gMenuNewGameFlag == TRUE) {
+					gGame.set_game_status(GAME_RUNNING);
+					gMenuNewGameFlag = FALSE;
+					state = FALSE;
+				} else { //signal was given by end of game
+					gMenuNewGameFlag = FALSE;
+					state = TRUE;
+				}
+
+				break;
+
+			case GTK_RESPONSE_YES:
+				state = FALSE;
 			 	start_new_game(widget);
 				break;
-		}	
+
+    		case GTK_RESPONSE_NO:
+    			state = FALSE;
+				g_signal_emit_by_name (gWindow, "destroy");
+	       		break;
+			}
+		}
+
 		gtk_widget_hide (gDialog);
 	}
+	//make a global copy
+	gDrawingArea = widget;
 }
+
+
+
+static void
+new_game_cb (GSimpleAction *action,
+            GVariant      *parameter,
+            gpointer       user_data)
+{
+	gGame.set_game_status(GAME_OVER);
+	gMenuNewGameFlag = TRUE;
+	advance_game(gDrawingArea, 0);
+}
+
+static void
+about_cb (GSimpleAction *action,
+            GVariant      *parameter,
+            gpointer       user_data)
+{
+	GdkPixbuf *tictactoe_logo = 
+		gdk_pixbuf_new_from_file ("/usr/local/share/tictactoe_icon.png", NULL);
+
+	gtk_show_about_dialog (
+		NULL,
+		"program-name", "Tic-tac-toe",
+		"title", "About Tic-tac-toe",
+		"logo", tictactoe_logo,
+		"comments", "A simple noughts and crosses game.",
+		NULL);
+}
+
+static void
+exit_cb (GSimpleAction *action,
+            GVariant      *parameter,
+            gpointer       user_data)
+{
+	g_signal_emit_by_name (gWindow, "destroy");
+}
+
+static GActionEntry app_entries[] = {
+	{ "newGame", new_game_cb, NULL, NULL, NULL },
+  	{ "about", about_cb, NULL, NULL, NULL },
+  	{ "exit", exit_cb, NULL, NULL, NULL }
+};
+
 
 static void
 activate (GtkApplication *app, gpointer user_data) {
 
-	GtkWidget *window;
 	GtkWidget *frame;
 	GtkWidget *drawing_area;
+
+	GMenu *file_menu;
+ 	GMenu *s1, *s2;
+
 	GtkDialogFlags flags = GTK_DIALOG_DESTROY_WITH_PARENT;
 
-	window = gtk_application_window_new (app);
-	gtk_window_set_title (GTK_WINDOW (window), "Tic-tac-toe");
-	gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
+	gWindow = gtk_application_window_new (app);
+	gtk_window_set_title (GTK_WINDOW (gWindow), "Tic-tac-toe");
+	gtk_window_set_resizable (GTK_WINDOW (gWindow), FALSE);
 
-	g_signal_connect (window, "destroy", G_CALLBACK (close_window), NULL);
+	g_signal_connect (gWindow, "destroy", G_CALLBACK (close_window_cb), &app);
 
-	gtk_container_set_border_width (GTK_CONTAINER (window), 8);
+	gtk_container_set_border_width (GTK_CONTAINER (gWindow), 8);
 
 	frame = gtk_frame_new (NULL);
 	gtk_frame_set_shadow_type (GTK_FRAME (frame), GTK_SHADOW_IN);
-	gtk_container_add (GTK_CONTAINER (window), frame);
+	gtk_container_add (GTK_CONTAINER (gWindow), frame);
 
 	/* Create the drawing area */
 	drawing_area = gtk_drawing_area_new ();
@@ -586,15 +671,16 @@ activate (GtkApplication *app, gpointer user_data) {
 
 	gtk_container_add (GTK_CONTAINER (frame), drawing_area);
 
-	gDialog = gtk_message_dialog_new (GTK_WINDOW(window), flags, 
+	gDialog = gtk_message_dialog_new (GTK_WINDOW(gWindow), flags, 
 		GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, "New Game");
+
 
 	/* Signals used to handle backing surface */
 	g_signal_connect (drawing_area, "draw",	G_CALLBACK (draw_cb), NULL);
 	g_signal_connect (drawing_area, "configure_event", G_CALLBACK (configure_event_cb), NULL);
 
 	/* Event signals */
-	g_signal_connect (drawing_area, "button_press_event",	G_CALLBACK (button_press_event_cb), NULL);
+	g_signal_connect (drawing_area, "button_press_event", G_CALLBACK (button_press_event_cb), NULL);
 
 	/* Ask to receive events the drawing doesn't normally subscribe to. In particular, 
 		we need to ask for the button press and motion notify events that want to handle. */
@@ -602,17 +688,49 @@ activate (GtkApplication *app, gpointer user_data) {
 		drawing_area, gtk_widget_get_events (drawing_area) |
 		GDK_BUTTON_PRESS_MASK | GDK_POINTER_MOTION_MASK);
 
-	gtk_widget_show_all (window);
+
+	g_action_map_add_action_entries (
+		G_ACTION_MAP (G_APPLICATION (app)), app_entries, G_N_ELEMENTS (app_entries), G_APPLICATION (app));
+
+	if (g_getenv ("APP_MENU_FALLBACK")) {
+    	g_object_set (gtk_settings_get_default (), "gtk-shell-shows-app-menu", FALSE, NULL);
+	}
+
+	file_menu = g_menu_new ();
+ 	
+ 	s1 = g_menu_new ();
+ 	g_menu_append (s1, "New Game", "app.newGame");
+ 	g_menu_append (s1, "About", "app.about");
+ 	g_menu_append_section (file_menu, NULL, G_MENU_MODEL(s1));
+ 
+	s2 = g_menu_new ();
+ 	g_menu_append (s2, "Exit", "app.exit");
+ 	g_menu_append_section (file_menu, NULL, G_MENU_MODEL(s2));
+
+	gtk_application_set_app_menu (GTK_APPLICATION (app), G_MENU_MODEL (file_menu));
+	g_object_unref (file_menu);
+
+
+	gtk_widget_show_all (gWindow);
 
 	init_game(drawing_area);
 }
+
 
 int main (int argc, char **argv) {
 
 	GtkApplication *app;
 	int status;
 
-	app = gtk_application_new ("org.gtk.example", G_APPLICATION_FLAGS_NONE);
+
+	/* Since this example is running uninstalled,
+	* we have to help it find its schema. This
+	* is *not* necessary in properly installed
+	* application.
+	*/
+	g_setenv ("GSETTINGS_SCHEMA_DIR", ".", FALSE);
+
+	app = gtk_application_new ("org.gtk.tictactoe", G_APPLICATION_FLAGS_NONE);
 	g_signal_connect (app, "activate", G_CALLBACK(activate), NULL);
 	status = g_application_run (G_APPLICATION (app), argc, argv);
 	g_object_unref (app);
