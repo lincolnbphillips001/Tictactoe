@@ -12,10 +12,11 @@ const guint MSG_2 = 2; //Player 2's turn
 const guint MSG_3 = 3; //Game over...Draw!
 const guint MSG_4 = 4; //Game over...Player 1 wins!
 const guint MSG_5 = 5; //Game over...Player 1 wins!
+const gdouble M_PI = 3.142; //Pi
 
 
 GtkWidget *gWindow;
-GtkWidget *gDialog;
+GtkWidget *gNewGameDialog;
 GtkWidget *gDrawingArea;
 Board gBoard (NUMBER_OF_BOXES);
 Player gPlayer (NUMBER_OF_PLAYERS, PLAYER_1);
@@ -32,6 +33,7 @@ static void clear_surface (void);
 static void draw_grid (GtkWidget *);
 static void draw_info_bar (GtkWidget *, guint);
 static void draw_noughts_or_crosses (GtkWidget *, guint, gint);
+void draw_win_direction(GtkWidget *, guint);
 static void advance_game(GtkWidget *, guint);
 static void init_game (GtkWidget *);
 static void start_new_game (GtkWidget *);
@@ -49,7 +51,6 @@ close_window_cb (
 	if (surface) {
 		cairo_surface_destroy (surface);
 	}
-
 	exit (0);
 
 	/* We've handled the configure event, no need for further processing. */
@@ -446,6 +447,78 @@ draw_noughts_or_crosses(GtkWidget *widget, guint boxSelected, gint currentPlayer
 	gtk_widget_queue_draw_area (widget, 5, 5, 190, 190);
 }
 
+void draw_win_direction(GtkWidget *widget, guint winDirection) {
+
+	if (winDirection != NO_CURRENT_WIN) {
+
+		cairo_t *cr;
+
+		/* Paint to the surface, where we store our state */
+		cr = cairo_create (surface);
+
+		cairo_set_source_rgb(cr, 1, 1, 1);
+
+		switch (winDirection) {
+			case NO_CURRENT_WIN:
+				break;
+			case TOP_ROW:
+				//g_print ("Draw line across TOP_ROW\n");
+				cairo_rectangle (cr, 10, 90, 580, 20);
+				cairo_fill (cr);
+				gtk_widget_queue_draw_area (widget, 0, 0, 600, 600);
+				break;
+			case MIDDLE_ROW:
+				//g_print ("Draw line across MIDDLE_ROW\n");
+				cairo_rectangle (cr, 10, 290, 580, 20);
+				gtk_widget_queue_draw_area (widget, 0, 0, 600, 600);
+				cairo_fill (cr);
+				break;
+			case BOTTOM_ROW:
+				//g_print ("Draw line across BOTTOM_ROW\n");
+				cairo_rectangle (cr, 10, 490, 580, 20);
+				cairo_fill (cr);
+				gtk_widget_queue_draw_area (widget, 0, 0, 600, 600);
+				break;
+			case LEFT_COLUMN:
+				//g_print ("Draw line across LEFT_COLUMN\n");
+				cairo_rectangle (cr, 90, 10, 20, 580);
+				cairo_fill (cr);
+				gtk_widget_queue_draw_area (widget, 0, 0, 600, 600);
+				break;
+			case MIDDLE_COLUMN:
+				//g_print ("Draw line across MIDDLE_COLUMN\n");
+				cairo_rectangle (cr, 290, 10, 20, 580);
+				cairo_fill (cr);
+				gtk_widget_queue_draw_area (widget, 0, 0, 600, 600);
+				break;
+			case RIGHT_COLUMN:
+				//g_print ("Draw line across RIGHT_COLUMN\n");
+				cairo_rectangle (cr, 490, 10, 20, 580);
+				cairo_fill (cr);
+				gtk_widget_queue_draw_area (widget, 0, 0, 600, 600);
+				break;
+			case TOP_LEFT_TO_BOTTOM_RIGHT:
+				//g_print ("Draw line across TOP_LEFT_TO_BOTTOM_RIGHT\n");
+        cairo_rotate (cr, 45*(M_PI/180));
+				cairo_fill (cr);
+				cairo_rectangle (cr, 53, -10, 748, 20);
+				cairo_fill (cr);
+				gtk_widget_queue_draw_area (widget, 0, 0, 600, 600);
+				break;
+			case TOP_RIGHT_TO_BOTTOM_LEFT:
+				//g_print ("Draw line across TOP_RIGHT_TO_BOTTOM_LEFT\n");
+        cairo_rotate (cr, -45*(M_PI/180));
+				cairo_fill (cr);
+				//                   left/right, up/down																					
+				cairo_rectangle (cr, -375, 415, 748, 20);
+				cairo_fill (cr);
+				gtk_widget_queue_draw_area (widget, 0, 0, 600, 600);
+				break;
+		}
+		cairo_destroy (cr);
+	}
+}
+
 static void init_game (GtkWidget *drawing_area) {
 
 	//GUI
@@ -472,6 +545,7 @@ static void start_new_game (GtkWidget *widget) {
 	gPlayer.reset_player_moves ();
 	gPlayer.set_current_player (PLAYER_1);
 	gGame.set_game_status(GAME_RUNNING);
+	gGame.reset_win_direction();
 }
 
 static void advance_game(GtkWidget *widget, guint boxSelected) {
@@ -479,6 +553,7 @@ static void advance_game(GtkWidget *widget, guint boxSelected) {
 	guint currentPlayer;
 	guint playerWinStatus;
 	guint **tmp;
+	guint winDirection;
 
 
 	if (gGame.get_game_status() == GAME_RUNNING) {
@@ -508,16 +583,20 @@ static void advance_game(GtkWidget *widget, guint boxSelected) {
 
 					//check for win	
 					playerWinStatus = gGame.check_board_for_win();
-					switch (playerWinStatus) {
-						case NO_PLAYER_WIN:
-							draw_info_bar (widget, MSG_3);
-							break;
-						case PLAYER_1_WIN:
-							draw_info_bar (widget, MSG_4);
-							break;
-						case PLAYER_2_WIN:
-							draw_info_bar (widget, MSG_5);
-							break;
+					if (playerWinStatus != NO_WIN) {
+						switch (playerWinStatus) {
+							case NO_PLAYER_WIN:
+								draw_info_bar (widget, MSG_3);
+								break;
+							case PLAYER_1_WIN:
+								draw_info_bar (widget, MSG_4);
+								break;
+							case PLAYER_2_WIN:
+								draw_info_bar (widget, MSG_5);
+								break;
+						}
+						winDirection = gGame.get_win_direction();
+						draw_win_direction(widget, winDirection);
 					}
 					gGame.set_game_status(GAME_OVER);
 
@@ -527,17 +606,22 @@ static void advance_game(GtkWidget *widget, guint boxSelected) {
 
 					//check for win
 					playerWinStatus = gGame.check_board_for_win();
-					switch (playerWinStatus) {
-						case NO_PLAYER_WIN:
-							break;
-						case PLAYER_1_WIN:
-							gGame.set_game_status(GAME_OVER);
-							draw_info_bar (widget, MSG_4);
-							break;
-						case PLAYER_2_WIN:
-							gGame.set_game_status(GAME_OVER);
-							draw_info_bar (widget, MSG_5);
-							break;
+					if (playerWinStatus != NO_WIN) {
+						switch (playerWinStatus) {
+							case NO_PLAYER_WIN:
+								break;
+							case PLAYER_1_WIN:
+								gGame.set_game_status(GAME_OVER);
+								draw_info_bar (widget, MSG_4);
+
+								break;
+							case PLAYER_2_WIN:
+								gGame.set_game_status(GAME_OVER);
+								draw_info_bar (widget, MSG_5);
+								break;
+						}
+						winDirection = gGame.get_win_direction();
+						draw_win_direction(widget, winDirection);
 					}
 				}
 
@@ -563,7 +647,7 @@ static void advance_game(GtkWidget *widget, guint boxSelected) {
 		guint state = TRUE;
 
 		while (state) {
-		int result = gtk_dialog_run (GTK_DIALOG (gDialog));
+		int result = gtk_dialog_run (GTK_DIALOG (gNewGameDialog));
 		switch (result) {
 
 			case GTK_RESPONSE_DELETE_EVENT:
@@ -587,12 +671,12 @@ static void advance_game(GtkWidget *widget, guint boxSelected) {
 
     		case GTK_RESPONSE_NO:
     			state = FALSE;
-				g_signal_emit_by_name (gWindow, "destroy");
-	       		break;
+					g_signal_emit_by_name (gWindow, "destroy");
+	       	break;
 			}
 		}
 
-		gtk_widget_hide (gDialog);
+		gtk_widget_hide (gNewGameDialog);
 	}
 	//make a global copy
 	gDrawingArea = widget;
@@ -641,7 +725,6 @@ static GActionEntry app_entries[] = {
   	{ "exit", exit_cb, NULL, NULL, NULL }
 };
 
-
 static void
 activate (GtkApplication *app, gpointer user_data) {
 
@@ -671,9 +754,8 @@ activate (GtkApplication *app, gpointer user_data) {
 
 	gtk_container_add (GTK_CONTAINER (frame), drawing_area);
 
-	gDialog = gtk_message_dialog_new (GTK_WINDOW(gWindow), flags, 
+	gNewGameDialog = gtk_message_dialog_new (GTK_WINDOW(gWindow), flags, 
 		GTK_MESSAGE_QUESTION, GTK_BUTTONS_YES_NO, "New Game");
-
 
 	/* Signals used to handle backing surface */
 	g_signal_connect (drawing_area, "draw",	G_CALLBACK (draw_cb), NULL);
@@ -715,7 +797,6 @@ activate (GtkApplication *app, gpointer user_data) {
 
 	init_game(drawing_area);
 }
-
 
 int main (int argc, char **argv) {
 
