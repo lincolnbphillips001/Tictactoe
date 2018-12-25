@@ -583,20 +583,21 @@ static void advance_game(GtkWidget *widget, guint boxSelected) {
 
 					//check for win	
 					playerWinStatus = gGame.check_board_for_win();
+					switch (playerWinStatus) {
+						case NO_PLAYER_WIN:
+							draw_info_bar (widget, MSG_3);
+							break;
+						case PLAYER_1_WIN:
+							draw_info_bar (widget, MSG_4);
+							break;
+						case PLAYER_2_WIN:
+							draw_info_bar (widget, MSG_5);
+							break;
+					}
+
 					if (playerWinStatus != NO_WIN) {
-						switch (playerWinStatus) {
-							case NO_PLAYER_WIN:
-								draw_info_bar (widget, MSG_3);
-								break;
-							case PLAYER_1_WIN:
-								draw_info_bar (widget, MSG_4);
-								break;
-							case PLAYER_2_WIN:
-								draw_info_bar (widget, MSG_5);
-								break;
-						}
-						winDirection = gGame.get_win_direction();
-						draw_win_direction(widget, winDirection);
+							winDirection = gGame.get_win_direction();
+							draw_win_direction(widget, winDirection);
 					}
 					gGame.set_game_status(GAME_OVER);
 
@@ -606,22 +607,24 @@ static void advance_game(GtkWidget *widget, guint boxSelected) {
 
 					//check for win
 					playerWinStatus = gGame.check_board_for_win();
-					if (playerWinStatus != NO_WIN) {
-						switch (playerWinStatus) {
-							case NO_PLAYER_WIN:
-								break;
-							case PLAYER_1_WIN:
-								gGame.set_game_status(GAME_OVER);
-								draw_info_bar (widget, MSG_4);
 
-								break;
-							case PLAYER_2_WIN:
-								gGame.set_game_status(GAME_OVER);
-								draw_info_bar (widget, MSG_5);
-								break;
-						}
-						winDirection = gGame.get_win_direction();
-						draw_win_direction(widget, winDirection);
+					switch (playerWinStatus) {
+						case NO_PLAYER_WIN:
+							break;
+						case PLAYER_1_WIN:
+							gGame.set_game_status(GAME_OVER);
+							draw_info_bar (widget, MSG_4);
+							winDirection = gGame.get_win_direction();
+							draw_win_direction(widget, winDirection);
+							break;
+						case PLAYER_2_WIN:
+							gGame.set_game_status(GAME_OVER);
+							draw_info_bar (widget, MSG_5);
+							break;
+					}
+					if (playerWinStatus != NO_WIN) {
+							winDirection = gGame.get_win_direction();
+							draw_win_direction(widget, winDirection);
 					}
 				}
 
