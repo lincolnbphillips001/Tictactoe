@@ -15,9 +15,7 @@ const guint ROW_3 = 2;
 const guint COL_1 = 0;
 const guint COL_2 = 1;
 const guint COL_3 = 2;
-const guint NO_WIN = 0;
-const guint PLAYER_1_NUMBER = 1;
-const guint PLAYER_2_NUMBER = 2;
+
 const guint ZERO_SUM = 0;
 
 Game::Game (void) {
@@ -31,6 +29,8 @@ Game::Game (void) {
 	for (guint i = 0; i < NUMBER_OF_ROWS; i++) {
     	memset(&gCurrentTicTacToeBoard[i], 0, sizeof(gCurrentTicTacToeBoard[0]));
 	}
+
+	gDirectionOfWin = NO_CURRENT_WIN;
 }
 
 Game::~Game (void) {
@@ -115,6 +115,8 @@ guint Game::check_board_for_win (void) {
 			
 			if ((r1_c1 == r1_c2) && (r1_c1 == r1_c3) && (r1_c2 == r1_c3)) {
 
+				gDirectionOfWin = TOP_ROW;
+
 				if (r1_c1 == PLAYER_1_NUMBER) {
 					return PLAYER_1_NUMBER;
 				} else {
@@ -127,6 +129,8 @@ guint Game::check_board_for_win (void) {
 		if ((r2_c1 + r2_c2 + r2_c3) != ZERO_SUM) { 
 			
 			if ((r2_c1 == r2_c2) && (r2_c1 == r2_c3) && (r2_c2 == r2_c3)) {
+
+				gDirectionOfWin = MIDDLE_ROW;
 
 				if (r2_c1 == PLAYER_1_NUMBER) {
 					return PLAYER_1_NUMBER;
@@ -141,6 +145,8 @@ guint Game::check_board_for_win (void) {
 			
 			if ((r3_c1 == r3_c2) && (r3_c1 == r3_c3) && (r3_c2 == r3_c3)) {
 
+				gDirectionOfWin = BOTTOM_ROW;
+
 				if (r3_c1 == PLAYER_1_NUMBER) {
 					return PLAYER_1_NUMBER;
 				} else {
@@ -154,6 +160,8 @@ guint Game::check_board_for_win (void) {
 			
 			if ((r1_c1 == r2_c1) && (r1_c1 == r3_c1) && (r2_c1 == r3_c1)) {
 
+				gDirectionOfWin = LEFT_COLUMN;
+
 				if (r1_c1 == PLAYER_1_NUMBER) {
 					return PLAYER_1_NUMBER;
 				} else {
@@ -166,6 +174,8 @@ guint Game::check_board_for_win (void) {
 			
 			if ((r1_c2 == r2_c2) && (r1_c2 == r3_c2) && (r2_c2 == r3_c2)) {
 
+				gDirectionOfWin = MIDDLE_COLUMN;
+
 				if (r1_c2 == PLAYER_1_NUMBER) {
 					return PLAYER_1_NUMBER;
 				} else {
@@ -177,6 +187,8 @@ guint Game::check_board_for_win (void) {
 		if ((r1_c3 + r2_c3 + r3_c3) != ZERO_SUM) { 
 			
 			if ((r1_c3 == r2_c3) && (r1_c3 == r3_c3) && (r2_c3 == r3_c3)) {
+
+				gDirectionOfWin = RIGHT_COLUMN;
 
 				if (r1_c3 == PLAYER_1_NUMBER) {
 					return PLAYER_1_NUMBER;
@@ -191,6 +203,8 @@ guint Game::check_board_for_win (void) {
 
 			if ((r1_c1 == r2_c2) && (r1_c1 == r3_c3) && (r2_c2 == r3_c3)) {
 
+				gDirectionOfWin = TOP_LEFT_TO_BOTTOM_RIGHT;
+
 				if (r1_c1 == PLAYER_1_NUMBER) {
 					return PLAYER_1_NUMBER;
 				} else {
@@ -204,6 +218,8 @@ guint Game::check_board_for_win (void) {
 
 			if ((r1_c3 == r2_c2) && (r1_c3 == r3_c1) && (r2_c2 == r3_c1)) {
 
+				gDirectionOfWin = TOP_RIGHT_TO_BOTTOM_LEFT;
+
 				if (r1_c3 == PLAYER_1_NUMBER) {
 					return PLAYER_1_NUMBER;
 				} else {
@@ -213,5 +229,16 @@ guint Game::check_board_for_win (void) {
 		}
 	}
 
+	gDirectionOfWin = NO_CURRENT_WIN;
 	return NO_WIN;
+}
+
+guint Game::get_win_direction (void) {
+
+	return gDirectionOfWin;
+}
+
+void Game::reset_win_direction (void) {
+
+	gDirectionOfWin = NO_CURRENT_WIN;
 }
